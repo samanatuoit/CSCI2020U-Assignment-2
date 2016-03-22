@@ -30,10 +30,13 @@ public class Client extends Application {
         BorderPane layout = new BorderPane();
         Button uploadBtn = new Button("Upload");
         Button downloadBtn = new Button("Download");
+        Button connectBtn = new Button("Connect");
+        connectBtn.setOnAction(evt -> Connect());
         GridPane gridPane = new GridPane();
         gridPane.setPadding(new Insets(10, 10, 10, 10));
         gridPane.add(uploadBtn, 0, 0);
         gridPane.add(downloadBtn, 1, 0);
+        gridPane.add(connectBtn, 2, 0);
         layout.setTop(gridPane);
 
         localFilesTable = new TableView<>();
@@ -63,15 +66,19 @@ public class Client extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
+
+
+        //remoteFilesTable.setItems(getRemoteFiles());
+
+        //setUpNetworking();
+    }
+    private void Connect() {
         try {
             this.sock = new Socket("127.0.0.1", 7000);
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        remoteFilesTable.setItems(getRemoteFiles());
-
-        //setUpNetworking();
+        getRemoteFiles();
     }
     private ObservableList<FileRecord> getLocalFiles() {
         // Lets try populating the localFilesTable with our own local files
@@ -94,9 +101,11 @@ public class Client extends Application {
             PrintWriter out = new PrintWriter(sock.getOutputStream());
             out.println("DIR");
             out.flush();
-            ServerSocket serverSocket = new ServerSocket(7000);
-            Socket listenSocket = serverSocket.accept();
-            BufferedReader in = new BufferedReader(new InputStreamReader(listenSocket.getInputStream()));
+            // After giving server the command, wait for its response
+            //ServerSocket serverSocket = new ServerSocket(7001);
+            System.out.println("Waiting for server response to sent command");
+            //Socket listenSocket = serverSocket.accept();
+            BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
             while ((fileName = in.readLine()) != null) {
                 System.out.println(fileName);
             }
