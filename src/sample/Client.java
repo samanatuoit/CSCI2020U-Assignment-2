@@ -3,11 +3,14 @@ package sample;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TablePosition;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
@@ -18,12 +21,16 @@ import java.io.*;
 import java.net.Socket;
 
 public class Client extends Application {
-    TableView<FileRecord> localFilesTable;
-    TableView<FileRecord> remoteFilesTable;
-    Socket clientSocket;
-    BufferedReader in;
-    PrintWriter out;
+    private TableView<FileRecord> localFilesTable;
+    private TableView<FileRecord> remoteFilesTable;
+    private TableColumn<FileRecord, String> localFilesCol;
+    private TableColumn<FileRecord, String> remoteFilesCol;
+    private Socket clientSocket;
+    private BufferedReader in;
+    private PrintWriter out;
+    private BufferedReader fileIn;
     private File myDirectory;
+    private ConnectionHandler connectionHandler;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -33,6 +40,43 @@ public class Client extends Application {
         Group root = new Group();
         BorderPane layout = new BorderPane();
         Button uploadBtn = new Button("Upload");
+        uploadBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                TablePosition tablePosition = localFilesTable.getSelectionModel().getSelectedCells().get(0);
+                int row = tablePosition.getRow();
+                FileRecord fileRecord = localFilesTable.getItems().get(row);
+                TableColumn column = tablePosition.getTableColumn();
+                String fileName = (String) column.getCellObservableValue(fileRecord).getValue();
+                System.out.println("fileName selected = " + fileName);
+                connect();
+                out.println("UPLOAD " + fileName);
+                out.flush();
+                String line;
+                try {
+                    fileIn = new BufferedReader(new FileReader(myDirectory.getPath() + "\\" + fileName));
+                    while ((line = fileIn.readLine()) != null) {
+                        System.out.println("File content: " + line);
+                        out.println(line);
+                        out.flush();
+                    }
+                    out.println("\0");
+                    out.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("File upload complete");
+                // Refresh file listing
+                if (!remoteFilesTable.getItems().contains(fileRecord)) {
+                    remoteFilesTable.getItems().add(fileRecord);
+                }
+                //connect();
+                //Thread t = new Thread(new ConnectionHandler());
+                //t.start();
+
+
+            }
+        });
         Button downloadBtn = new Button("Download");
         Button exitBtn = new Button("Exit");
         exitBtn.setOnAction(evt -> System.exit(0));
@@ -48,12 +92,12 @@ public class Client extends Application {
 
         //localFilesTable.setItems(connectionHandler.getLocalFiles());
 
-        TableColumn<FileRecord, String> localFilesCol = new TableColumn<>();
+        localFilesCol = new TableColumn<>();
         localFilesCol.setCellValueFactory(new PropertyValueFactory<>("fileName"));
         localFilesCol.setMinWidth(300);
         localFilesTable.getColumns().add(localFilesCol);
 
-        TableColumn<FileRecord, String> remoteFilesCol = new TableColumn<>();
+        remoteFilesCol = new TableColumn<>();
         remoteFilesCol.setCellValueFactory(new PropertyValueFactory<>("fileName"));
         remoteFilesCol.setMinWidth(300);
         remoteFilesTable.getColumns().add(remoteFilesCol);
@@ -70,20 +114,14 @@ public class Client extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        try {
-            clientSocket = new Socket("127.0.0.1", 7000);
-            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            out = new PrintWriter(clientSocket.getOutputStream());
-            out.println("DIR");
-            out.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
+        connect();
         ConnectionHandler connectionHandler = new ConnectionHandler();
         Thread t = new Thread(connectionHandler);
         t.start();
         getLocalFiles();
+
+
+        //System.out.println("localFilesTable.itemsProperty().getName() = " + localFilesTable.getColumns());
 
 
 
@@ -91,6 +129,27 @@ public class Client extends Application {
         //remoteFilesTable.setItems(getRemoteFilesList());
 
         //setUpNetworking();
+    }
+    private void connect() {
+        try {
+            clientSocket = new Socket("127.0.0.1", 7000);
+            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            out = new PrintWriter(clientSocket.getOutputStream());
+            System.out.println("Now connected to server");
+            //out.println("DIR");
+            //out.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+    private void disconnect() {
+        try {
+            clientSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
     private void getLocalFiles() {
         // Lets try populating the localFilesTable with our own local files
@@ -126,14 +185,14 @@ public class Client extends Application {
             }
         }*/
 
-        private void getRemoteFilesList() {
+        public synchronized void getRemoteFilesList() {
             // Get list of remote files by sending server "DIR" command
             ObservableList<FileRecord> remoteFiles = FXCollections.observableArrayList();
             String fileName;
             try {
-                //PrintWriter out = new PrintWriter(sock.getOutputStream());
-                //out.println("DIR");
-                //out.flush();
+                PrintWriter out = new PrintWriter(clientSocket.getOutputStream());
+                out.println("DIR");
+                out.flush();
                 // After giving server the command, wait for its response
                 //ServerSocket serverSocket = new ServerSocket(7001);
                 System.out.println("Waiting for server response to sent command");
@@ -152,7 +211,8 @@ public class Client extends Application {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
+            //disconnect();
+            //System.out.println("Disconnected from server");
             remoteFilesTable.setItems(remoteFiles);
             //System.out.println("remoteFilesTable = " + remoteFilesTable);
         }
