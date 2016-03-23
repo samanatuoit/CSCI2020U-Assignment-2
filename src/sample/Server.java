@@ -72,10 +72,10 @@ public class Server {
                 in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                 clientCommand = in.readLine();
                 String clientCommandTokens[] = clientCommand.split(" ");
-                /*for (int i = 0; i < clientCommandTokens.length; i++) {
+                for (int i = 0; i < clientCommandTokens.length; i++) {
                     String entry = clientCommandTokens[i];
                     System.out.println("clientCommandTokens[" + i + "] = " + clientCommandTokens[i]);
-                }*/
+                }
 
                 if (clientCommandTokens[0].equals("DIR")) {
                     System.out.println("Received command: " + clientCommandTokens[0]);
@@ -151,10 +151,30 @@ public class Server {
 
         }
         private synchronized void sendFile(String fileName) {
+            int index = -1;
+            System.out.println("fileName = " + fileName);
             for (FileRecord entry : fileRecordArrayList) {
+                System.out.println("entry.getFileName() = " + entry.getFileName());
                 if (entry.getFileName().equals(fileName)) {
                     System.out.println("We have a match!");
+                    index = fileRecordArrayList.indexOf(entry);
                 }
+            }
+            String line;
+            //System.out.println("get(index) = " + fileRecordArrayList.get(index));
+            try {
+                in = new BufferedReader(new FileReader(serverDirectory + "\\" + fileRecordArrayList.get(index).getFileName()));
+                PrintWriter out = new PrintWriter(clientSocket.getOutputStream());
+                while ((line = in.readLine()) != null) {
+                    out.println(line);
+                    out.flush();
+                }
+                out.println("\0");
+                out.flush();
+
+
+            } catch (IOException e) {
+                e.printStackTrace();
             }
 
         }

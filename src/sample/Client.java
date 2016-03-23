@@ -31,6 +31,7 @@ public class Client extends Application {
     private BufferedReader fileIn;
     private File myDirectory;
     private ConnectionHandler connectionHandler;
+    private PrintWriter fout;
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -78,6 +79,36 @@ public class Client extends Application {
             }
         });
         Button downloadBtn = new Button("Download");
+        downloadBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                TablePosition tablePosition = remoteFilesTable.getSelectionModel().getSelectedCells().get(0);
+                int row = tablePosition.getRow();
+                FileRecord fileRecord = remoteFilesTable.getItems().get(row);
+                TableColumn column = tablePosition.getTableColumn();
+                String fileName = (String) column.getCellObservableValue(fileRecord).getValue();
+                System.out.println("fileName selected = " + fileName);
+                connect();
+                out.println("DOWNLOAD " + fileName);
+                out.flush();
+                String line;
+                File downloadFile = new File(myDirectory.getPath() + "\\" + fileName);
+                try {
+                    fout = new PrintWriter(downloadFile);
+                    //in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                    while ((line = in.readLine()) != null) {
+                        if (line.equals("\0")) {
+                            break;
+                        }
+                        fout.println(line);
+                    }
+                    fout.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        });
         Button exitBtn = new Button("Exit");
         exitBtn.setOnAction(evt -> System.exit(0));
         GridPane gridPane = new GridPane();
