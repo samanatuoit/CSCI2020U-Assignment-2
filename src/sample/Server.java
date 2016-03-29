@@ -40,7 +40,7 @@ public class Server {
         try {
             serverSocket = new ServerSocket(7000);
             while (true) {
-                System.out.println("Now listneing for connections");
+                System.out.println("Now listening for connections");
                 clientSocket = serverSocket.accept();
                 System.out.println("Client connected");
                 Thread t = new Thread(new ClientConnectionHandler());

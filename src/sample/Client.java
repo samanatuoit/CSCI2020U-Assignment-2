@@ -67,7 +67,7 @@ public class Client extends Application {
                     e.printStackTrace();
                 }
                 System.out.println("File upload complete");
-                // Refresh file listing
+                // Update file listing
                 if (!remoteFilesTable.getItems().contains(fileRecord)) {
                     remoteFilesTable.getItems().add(fileRecord);
                 }
@@ -105,6 +105,10 @@ public class Client extends Application {
                     fout.close();
                 } catch (IOException e) {
                     e.printStackTrace();
+                }
+                // Update file listing
+                if (!localFilesTable.getItems().contains(fileRecord)) {
+                    localFilesTable.getItems().add(fileRecord);
                 }
 
             }
