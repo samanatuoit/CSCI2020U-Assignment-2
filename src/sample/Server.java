@@ -15,19 +15,7 @@ public class Server {
 
 
     public static void main(String[] args) {
-        /*try {
-            ServerSocket serverSocket = new ServerSocket(7000);
-            while (true) {
-                clientSocket = serverSocket.accept();
-                //ConnectionHandler clientHandler = new ConnectionHandler(clientSocket);
-                //Thread t = new Thread(clientHandler);
-                //t.start();
-            }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }*/
-        //Server server = new Server();
         new Server().go();
 
     }
@@ -57,6 +45,7 @@ public class Server {
         public void run() {
             getClientCommand();
         }
+        // Method to disconnect the client
         private void disconnect() {
             try {
                 clientSocket.close();
@@ -66,6 +55,7 @@ public class Server {
             }
         }
 
+        // Read in and interpret command from remote client
         private synchronized void getClientCommand() {
             String clientCommand;
             try {
@@ -147,10 +137,12 @@ public class Server {
                 e.printStackTrace();
             }
             disconnect();
-            //sendFilesList();
+
 
         }
         private synchronized void sendFile(String fileName) {
+            // Search the arraylist of files that we recorded in the server directory to make sure the file exists
+            // to send to the client
             int index = -1;
             System.out.println("fileName = " + fileName);
             for (FileRecord entry : fileRecordArrayList) {
@@ -161,7 +153,7 @@ public class Server {
                 }
             }
             String line;
-            //System.out.println("get(index) = " + fileRecordArrayList.get(index));
+
             try {
                 in = new BufferedReader(new FileReader(serverDirectory + "\\" + fileRecordArrayList.get(index).getFileName()));
                 PrintWriter out = new PrintWriter(clientSocket.getOutputStream());
